@@ -2,13 +2,13 @@ import express from "express";
 import * as dotenv from "dotenv";
 dotenv.config();
 import db from "./src/models";
-import UserControllers from "./src/controllers/user";
+import routes from "./src/routes";
 
 const app = express();
-app.use(express.json());
 
-app.post("/", UserControllers.create);
-app.post("/login", UserControllers.login);
+app.use(express.json());
+app.use(routes);
+
 app.listen(3333, async () => {
   try {
     await db.sequelize.authenticate();
