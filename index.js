@@ -3,6 +3,7 @@ import db from "./src/models";
 import UserControllers from "./src/controllers/user";
 
 const app = express();
+app.use(express.json());
 
 app.post("/", UserControllers.create);
 app.listen(3333, async () => {
