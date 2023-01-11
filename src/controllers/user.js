@@ -2,6 +2,7 @@ import { User } from "../models";
 import * as Yup from "yup";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcrypt";
+import Mail from "../controllers/libs/email";
 
 class UserControllers {
   async login(req, res) {
@@ -60,7 +61,6 @@ class UserControllers {
       return res.status(400).json({ error: error?.message });
     }
   }
-
   async get(req, res) {
     try {
       if (!req.userId) {
@@ -73,6 +73,37 @@ class UserControllers {
       return res.status(200).json(user);
     } catch (error) {
       return res.status(400).json({ error: error?.message });
+    }
+  }
+
+  async forgotPassword(req, res) {
+    try {
+      const schema = Yup.object().shape({
+        email: Yup.string().email("Email is invalid.").required("Email is mandatory."),
+      });
+      await schema.validate(req.body);
+
+      const user = await User.findOne({ where: { email: req.body.email } });
+
+      if (!user) return res.status(404).json({ error: "User not found." });
+
+      const reset_password_token_sent_at = new Date();
+      const token = Math.random().toString().slice(2, 8);
+      const reset_password_token = await bcrypt.hash(token, 8);
+
+      await user.update({
+        reset_password_token_sent_at,
+        reset_password_token,
+      });
+
+      const { email, name } = user;
+
+      const mailResult = await Mail.sendForgotPasswordMail(email, name, token);
+      console.log({ mailResult });
+
+      return res.json({ success: true });
+    } catch (error) {
+      return res.status(400).json({ error: error.message });
     }
   }
 }
