@@ -1,4 +1,5 @@
 import { User } from "../models";
+import { differenceInHours } from "date-fns";
 import * as Yup from "yup";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcrypt";
@@ -75,7 +76,6 @@ class UserControllers {
       return res.status(400).json({ error: error?.message });
     }
   }
-
   async forgotPassword(req, res) {
     try {
       const schema = Yup.object().shape({
@@ -99,9 +99,47 @@ class UserControllers {
       const { email, name } = user;
 
       const mailResult = await Mail.sendForgotPasswordMail(email, name, token);
-      console.log({ mailResult });
+      if (!mailResult) return res.status(404).json({ error: "Email dont send." });
 
       return res.json({ success: true });
+    } catch (error) {
+      return res.status(400).json({ error: error.message });
+    }
+  }
+
+  async resetPassword(req, res) {
+    try {
+      const schema = Yup.object().shape({
+        email: Yup.string().email("Email is invalid.").required("Email is mandatory."),
+        token: Yup.string().required("Toke is mandatory."),
+        password: Yup.string()
+          .required("Password is mandatory.")
+          .min(6, "Password must be at least 6 characters."),
+      });
+
+      await schema.validate(req.body);
+
+      const user = await User.findOne({ where: { email: req.body.email } });
+
+      if (!user) return res.status(401).json({ error: "User not found." });
+      if (!user.reset_password_token && !user.reset_password_token_sent_at)
+        return res.status(401).json({ error: "Password change not requested." });
+
+      const hoursDifferent = differenceInHours(new Date(), user.reset_password_token_sent_at);
+
+      if (hoursDifferent > 3) return res.status(401).json({ error: "Token expired." });
+
+      const checkToken = await bcrypt.compare(req.body.token, user.reset_password_token);
+      if (!checkToken) return res.status(401).json({ error: "Token Invalid." });
+
+      const password_hash = await bcrypt.hash(req.body.password, 8);
+      await user.update({
+        password_hash,
+        reset_password_token: null,
+        reset_password_token_sent_at: null,
+      });
+
+      return res.status(200).json({ success: true });
     } catch (error) {
       return res.status(400).json({ error: error.message });
     }
