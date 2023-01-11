@@ -106,7 +106,6 @@ class UserControllers {
       return res.status(400).json({ error: error.message });
     }
   }
-
   async resetPassword(req, res) {
     try {
       const schema = Yup.object().shape({
