@@ -17,13 +17,21 @@ routes.post("/reset-password", UserControllers.resetPassword);
 //Authenticated routes----------------------
 routes.use(authMiddlewares);
 routes.get("/user", UserControllers.get);
+routes.put("/user", UserControllers.update);
+routes.put("/user/avatar", UserControllers.updateAvatar);
+
 routes.get("/category", CategoryController.getAll);
+
 routes.post("/author", AuthorController.create);
 routes.get("/author", AuthorController.getAll);
+routes.get("/author/:id", AuthorController.get);
+
 routes.post("/book", BookController.create);
 routes.get("/book", BookController.findAll);
+
 routes.post("/userbook", UserBookController.create);
 routes.get("/userbook", UserBookController.getAll);
 routes.delete("/userbook/:id", UserBookController.delete);
+
 routes.get("/search", SearchController.get);
 export default routes;

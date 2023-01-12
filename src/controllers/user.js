@@ -20,7 +20,6 @@ class UserControllers {
       const checkPassword = await bcrypt.compare(req.body.password, user.password_hash);
       if (!checkPassword) return res.status(401).json({ error: "Email or password do not match." });
 
-      console.log({ hash: process.env.JWT_HASH });
       const token = jwt.sign({ id: user.id }, process.env.JWT_HASH, {
         expiresIn: 2592000, //30 dias
       });
@@ -58,6 +57,48 @@ class UserControllers {
       await user.save();
 
       return res.json({ user });
+    } catch (error) {
+      return res.status(400).json({ error: error?.message });
+    }
+  }
+  async update(req, res) {
+    try {
+      const schema = Yup.object().shape({
+        name: Yup.string().min(3, "Name must be at least 3 characters."),
+        email: Yup.string().email("Email is invalid."),
+        password: Yup.string().min(6, "Password must be at least 6 characters."),
+      });
+
+      await schema.validate(req.body);
+      const { name, email, password } = req.body;
+      const user = await User.findByPk(req.userId);
+
+      if (!user) return res.status(404).json({ eroor: "User not found." });
+      if (name) user.name = name;
+      if (email) user.email = email;
+      if (password) {
+        user.password_hash = await bcrypt.hash(req.body.password, 8);
+      }
+      await user.save();
+
+      return res.json({ user });
+    } catch (error) {
+      return res.status(400).json({ error: error?.message });
+    }
+  }
+
+  async updateAvatar(req, res) {
+    try {
+      const schema = Yup.object().shape({
+        base64: Yup.string().required("Base64 is mandatory."),
+        mime: Yup.string().required("Mime is mandatory."),
+      });
+
+      await schema.validate(req.body);
+
+      const user = await User.findByPk(req.userId);
+
+      if (!user) return res.status(404).json({ error: "User not found." });
     } catch (error) {
       return res.status(400).json({ error: error?.message });
     }
