@@ -12,7 +12,6 @@ app.use(routes);
 app.listen(3333, async () => {
   try {
     await db.sequelize.authenticate();
-    console.log("API Runing and db connected.");
   } catch (error) {
     console.error(error.message);
   }

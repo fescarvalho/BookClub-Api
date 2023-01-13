@@ -4,6 +4,7 @@ import * as Yup from "yup";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcrypt";
 import Mail from "../controllers/libs/email";
+import UploadImage from "./libs/uploadimage";
 
 class UserControllers {
   async login(req, res) {
@@ -95,10 +96,26 @@ class UserControllers {
       });
 
       await schema.validate(req.body);
-
+      const { base64, mime } = req.body;
       const user = await User.findByPk(req.userId);
 
       if (!user) return res.status(404).json({ error: "User not found." });
+
+      if (user.avatar_url) {
+        const splitted = user.avatar_url.split("/");
+        const oldKey = splitted[splitted.length - 1];
+        const deleteResponse = await UploadImage.delete(oldKey);
+
+        if (deleteResponse.error) return res.status(500).json({ error: deleteResponse });
+      }
+      const key = `user_${user.id}_${new Date().getTime()}`;
+      const response = await UploadImage.upload(key, base64, mime);
+
+      if (response?.error) return res.status(400).json({ error: "Error to upload image." });
+
+      user.avatar_url = response.Location;
+      await user.save();
+      return res.json(user);
     } catch (error) {
       return res.status(400).json({ error: error?.message });
     }
