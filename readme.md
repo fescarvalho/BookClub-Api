@@ -1,4 +1,4 @@
-# Wallet App API (Back-end)
+# Books_Club_Api (Back-end)
 
 ## Intro
 
